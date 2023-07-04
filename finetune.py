@@ -51,6 +51,7 @@ def train(
         non_linearity: str = "tanh",
         adapter_dropout: float = 0.0,
         use_parallel_adapter: bool = False,
+        use_global_kv_adapter: bool = False,
         use_adapterp: bool = False,
         target_modules: List[str] = None,
         scaling: Union[float, str] = 1.0,
@@ -205,6 +206,7 @@ def train(
             non_linearity=non_linearity,
             adapter_dropout=adapter_dropout,
             use_parallel_adapter=use_parallel_adapter,
+            use_global_kv_adapter=use_global_kv_adapter,
             use_adapterp=use_adapterp,
             target_modules=target_modules,
             scaling=scaling,
@@ -239,7 +241,7 @@ def train(
             print(f"Checkpoint {checkpoint_name} not found")
 
     model.print_trainable_parameters()  # Be more transparent about the % of trainable params.
-
+    # model.dump_param()
     if val_set_size > 0:
         train_val = data["train"].train_test_split(
             test_size=val_set_size, shuffle=True, seed=42
@@ -297,8 +299,8 @@ def train(
         )
     ).__get__(model, type(model))
 
-    if torch.__version__ >= "2" and sys.platform != "win32":
-        model = torch.compile(model)
+    # if torch.__version__ >= "2" and sys.platform != "win32":
+    #     model = torch.compile(model)
 
     trainer.train(resume_from_checkpoint=resume_from_checkpoint)
 

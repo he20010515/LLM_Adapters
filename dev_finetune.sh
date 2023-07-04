@@ -1,0 +1,12 @@
+WORLD_SIZE=8 CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 torchrun --nproc_per_node=8  --master_port=8888 finetune.py \
+  --base_model 'decapoda-research/llama-7b-hf' \
+  --data_path 'math_data.json' \
+  --output_dir './trained_models/llama-lora' \
+  --batch_size 16 \
+  --micro_batch_size 4 \
+  --num_epochs 10 \
+  --learning_rate 3e-4 \
+  --cutoff_len 256 \
+  --val_set_size 120 \
+  --adapter_name lora \
+  --use_global_kv_adapter

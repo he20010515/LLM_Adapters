@@ -12,6 +12,7 @@ import torch.nn.functional as F
 
 from ..utils import PeftConfig, PeftType, transpose
 from transformers.activations import ACT2FN
+from .globalkv import GlobalKV
 
 
 TRANSFORMERS_MODELS_TO_ADAPTER_TYPE_MAPPING = {
@@ -62,6 +63,7 @@ class BottleneckConfig(PeftConfig):
         },
     )
     use_parallel_adapter: bool = field(default=False, metadata={"help": "Whether to use parallel adapter"})
+    use_global_kv_adapter: bool = field(default=False)
     use_adapterp: bool = field(default=False, metadata={"help": "Whether to use adapterp"})
     scaling: Union[float, str] = 1.0
     bias: str = field(default="none", metadata={"help": "Bias type for Bottleneck. Can be 'none', 'all' or 'adapter_only'"})
@@ -110,6 +112,26 @@ class BottleneckModel(torch.nn.Module):
         super().__init__()
         self.model = model
         self.peft_config = config
+        if self.peft_config.use_global_kv_adapter:
+            num_codebook = 4
+            self.global_mem_gate = GlobalKV(dim = model.config.hidden_size,
+                                       num_memory_codebooks=num_codebook,
+                                       num_memories=64,
+                                       dim_memory=11008//num_codebook,
+                                       decay = 0.9,
+                                       )
+            self.global_mem_down = GlobalKV(dim = 11008,
+                                       num_memory_codebooks=num_codebook,
+                                       num_memories=64,
+                                       dim_memory=model.config.hidden_size//num_codebook,
+                                       decay = 0.9,
+                                       )
+            self.global_mem_up=GlobalKV(dim = model.config.hidden_size,
+                                       num_memory_codebooks=num_codebook,
+                                       num_memories=64,
+                                       dim_memory=11008//num_codebook,
+                                       decay = 0.9,
+                                       )
         self._find_and_replace()
         mark_only_adapter_as_trainable(self.model, self.peft_config.bias)
         self.forward = self.model.forward
@@ -143,6 +165,8 @@ class BottleneckModel(torch.nn.Module):
                 # determine the type of adapter to be used, this will effect the forward pass
                 if self.peft_config.use_parallel_adapter:
                     adapter_type = "parallel_adapter"
+                elif self.peft_config.use_global_kv_adapter:
+                    adapter_type = "global_kv_adapter"
                 else:
                     adapter_type = TRANSFORMERS_MODELS_TO_ADAPTER_TYPE_MAPPING[self.model.config.model_type][target_name]
                 kwargs.update({"adapter_type": adapter_type})
@@ -170,6 +194,17 @@ class BottleneckModel(torch.nn.Module):
                         new_module = Linear(target.out_features, target.out_features, bias=bias, **kwargs)
                     elif adapter_type == "parallel_adapter":
                         new_module = Linear(target.in_features, target.out_features, bias=bias, **kwargs)
+                    elif adapter_type == "global_kv_adapter":
+                        match target_name:
+                            case "gate_proj":
+                                new_module = Linear(target.in_features, target.out_features, bias=bias,global_kv=self.global_mem_gate, **kwargs)
+                            case "up_proj":
+                                new_module = Linear(target.in_features, target.out_features, bias=bias,global_kv=self.global_mem_up, **kwargs)
+                            case "down_proj":
+                                new_module = Linear(target.in_features, target.out_features, bias=bias,global_kv=self.global_mem_down, **kwargs)
+                            case _:
+                                raise ValueError()
+                            
                 self._replace_module(parent, target_name, new_module, target)
         if not is_target_modules_in_base_model:
             raise ValueError(
@@ -203,6 +238,18 @@ class BottleneckModel(torch.nn.Module):
             return super().__getattr__(name)  # defer to nn.Module's logic
         except AttributeError:
             return getattr(self.model, name)
+        
+    def dump_param(self,file = "pa.json"):
+        import json
+        all_param = []
+        for name,param in self.named_parameters():
+            num_params = param.numel()
+            if num_params == 0 and hasattr(param,"ds_numel"):
+                num_params = param.ds_numel
+            all_param.append((name,num_params,param.requires_grad))
+        with open(file,'w') as f:
+            json.dump(all_param,f)
+        return 
 
     @property
     def modules_to_save(self):
@@ -242,6 +289,8 @@ def mark_only_adapter_as_trainable(model: nn.Module, bias: str = "none") -> None
     for n, p in model.named_parameters():
         if "adapter_" not in n:
             p.requires_grad = False
+        if "global" in n:
+            p.requires_grad = True
     if bias == "none":
         return
     elif bias == "all":
@@ -290,6 +339,7 @@ class Linear(nn.Linear, AdapterLayer):
         adapter_dropout: float,
         scaling: Union[float, str],
         init_weights: str,
+        global_kv: Optional["None"]=None,
         **kwargs,
     ):
         nn.Linear.__init__(self, in_features, out_features, **kwargs)
@@ -300,13 +350,17 @@ class Linear(nn.Linear, AdapterLayer):
 
         self.init_weights = init_weights
         self.adapter_type = adapter_type
+        if self.adapter_type == "global_kv_adapter":
+            assert isinstance(global_kv,GlobalKV)
+            self.global_kv = global_kv
+        else:
+            self.adapter_down = nn.Linear(in_features, bottleneck_size, bias=False)
+            self.adapter_up = nn.Linear(bottleneck_size, out_features, bias=False)
         if isinstance(scaling, float):
             self.adapter_scaling = scaling
         elif scaling == "learned":
             self.adapter_scaling = nn.Parameter(torch.ones(1))
         # Actual trainable parameters
-        self.adapter_down = nn.Linear(in_features, bottleneck_size, bias=False)
-        self.adapter_up = nn.Linear(bottleneck_size, out_features, bias=False)
         self.act_fn = ACT2FN[self.non_linearity]
         #Freezing the pre-trained weight matrix
         self.weight.requires_grad = False
@@ -339,14 +393,22 @@ class Linear(nn.Linear, AdapterLayer):
             module.bias.data.zero_()
 
     def train(self, mode: bool = True):
-        nn.Linear.train(self, mode)
-        self.adapter_down.train(mode)
-        self.adapter_up.train(mode)
+        if self.adapter_type == "global_kv_adapter":
+            nn.Linear.train(self, mode)
+            self.global_kv.train(mode)
+        else:
+            nn.Linear.train(self, mode)
+            self.adapter_down.train(mode)
+            self.adapter_up.train(mode)
 
     def eval(self):
-        nn.Linear.eval(self)
-        self.adapter_down.eval()
-        self.adapter_up.eval()
+        if self.adapter_type == "global_kv_adapter":
+            nn.Linear.eval(self)
+            self.global_kv.eval()
+        else:
+            nn.Linear.eval(self)
+            self.adapter_down.eval()
+            self.adapter_up.eval()
 
     def forward(self, x: torch.Tensor):
         if self.disable_adapters:
@@ -387,6 +449,16 @@ class Linear(nn.Linear, AdapterLayer):
                 output = self.adapter_up(self.act_fn(self.adapter_down(self.adapter_dropout(x)))).to(expected_dtype) * self.adapter_scaling
 
                 result = result + output
+            elif self.adapter_type == "global_kv_adapter":
+                weight_dtype = self.weight.dtype
+                x = x.to(weight_dtype)
+                result = F.linear(x, self.weight, bias=self.bias)
+                expected_dtype = result.dtype
+                if x.dtype != torch.float32:
+                    x = x.float()
+                output = self.global_kv(x)
+                result = result + output
+                result = result.half()
             return result
 
 
