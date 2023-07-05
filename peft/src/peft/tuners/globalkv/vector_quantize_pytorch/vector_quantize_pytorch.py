@@ -438,7 +438,7 @@ class EuclideanCodebook(nn.Module):
             batch_std = self.batch_variance.clamp(min = 1e-5).sqrt()
             embed = (embed - self.codebook_mean) * (batch_std / codebook_std) + self.batch_mean
 
-        dist = -torch.cdist(flatten, embed, p = 2)
+        dist = -torch.cdist(flatten.float(), embed.float(), p = 2)
 
         embed_ind, embed_onehot = self.gumbel_sample(dist, dim = -1, temperature = sample_codebook_temp, training = self.training)
 

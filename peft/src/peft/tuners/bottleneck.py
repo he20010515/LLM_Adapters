@@ -76,6 +76,8 @@ class BottleneckConfig(PeftConfig):
             "the final layer `classifier/score` are randomly initialized and as such need to be trainable and saved."
         },
     )
+    codebook_nums:Optional[int] = field(default=None),
+    num_memories:Optional[int] = field(default=None),
 
     def __post_init__(self):
         self.peft_type = PeftType.BOTTLENECK
@@ -113,22 +115,23 @@ class BottleneckModel(torch.nn.Module):
         self.model = model
         self.peft_config = config
         if self.peft_config.use_global_kv_adapter:
-            num_codebook = 4
+            num_codebook = config.codebook_nums
+            num_memories = config.num_memories
             self.global_mem_gate = GlobalKV(dim = model.config.hidden_size,
                                        num_memory_codebooks=num_codebook,
-                                       num_memories=64,
+                                       num_memories=num_memories,
                                        dim_memory=11008//num_codebook,
                                        decay = 0.9,
                                        )
             self.global_mem_down = GlobalKV(dim = 11008,
                                        num_memory_codebooks=num_codebook,
-                                       num_memories=64,
+                                       num_memories=num_memories,
                                        dim_memory=model.config.hidden_size//num_codebook,
                                        decay = 0.9,
                                        )
             self.global_mem_up=GlobalKV(dim = model.config.hidden_size,
                                        num_memory_codebooks=num_codebook,
-                                       num_memories=64,
+                                       num_memories=num_memories,
                                        dim_memory=11008//num_codebook,
                                        decay = 0.9,
                                        )
@@ -456,8 +459,9 @@ class Linear(nn.Linear, AdapterLayer):
                 expected_dtype = result.dtype
                 if x.dtype != torch.float32:
                     x = x.float()
-                output = self.global_kv(x)
-                result = result + output
+                if self.global_kv is not None:
+                    output = self.global_kv(x)
+                    result = result + output
                 result = result.half()
             return result
 

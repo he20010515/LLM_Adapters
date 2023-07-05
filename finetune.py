@@ -55,6 +55,9 @@ def train(
         use_adapterp: bool = False,
         target_modules: List[str] = None,
         scaling: Union[float, str] = 1.0,
+        # KV hyperparams
+        codebook_nums:Optional[int] = 2,
+        num_memories:Optional[int] = 16,
         # llm hyperparams
         train_on_inputs: bool = True,  # if False, masks out inputs in loss
         group_by_length: bool = False,  # faster, but produces an odd training loss curve
@@ -212,6 +215,8 @@ def train(
             scaling=scaling,
             bias="none",
             task_type="CAUSAL_LM",
+            codebook_nums = codebook_nums,
+            num_memories = num_memories,
         )
     model = get_peft_model(model, config)
 

@@ -1,12 +1,17 @@
-WORLD_SIZE=8 CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 torchrun --nproc_per_node=8  --master_port=8888 finetune.py \
+codebook_nums=$1
+num_memories=$2
+
+python finetune.py \
   --base_model 'decapoda-research/llama-7b-hf' \
   --data_path 'math_data.json' \
-  --output_dir './trained_models/llama-lora' \
-  --batch_size 16 \
+  --output_dir './trained_models/llama-kv' \
+  --batch_size 4 \
   --micro_batch_size 4 \
-  --num_epochs 10 \
+  --num_epochs 30 \
   --learning_rate 3e-4 \
   --cutoff_len 256 \
   --val_set_size 120 \
-  --adapter_name lora \
-  --use_global_kv_adapter
+  --adapter_name bottleneck \
+  --use_global_kv_adapter \
+  --codebook_nums $codebook_nums \
+  --num_memories $num_memories \

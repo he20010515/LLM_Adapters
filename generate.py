@@ -35,26 +35,26 @@ def main(
         model = LlamaForCausalLM.from_pretrained(
             base_model,
             load_in_8bit=load_8bit,
-            torch_dtype=torch.float16,
+            torch_dtype=torch.float32,
             device_map="auto",
             trust_remote_code=True,
         )
         model = PeftModel.from_pretrained(
             model,
             lora_weights,
-            torch_dtype=torch.float16,
+            torch_dtype=torch.float32,
         )
     elif device == "mps":
         model = LlamaForCausalLM.from_pretrained(
             base_model,
             device_map={"": device},
-            torch_dtype=torch.float16,
+            torch_dtype=torch.float32,
         )
         model = PeftModel.from_pretrained(
             model,
             lora_weights,
             device_map={"": device},
-            torch_dtype=torch.float16,
+            torch_dtype=torch.float32,
         )
     else:
         model = LlamaForCausalLM.from_pretrained(
@@ -75,8 +75,8 @@ def main(
         model.half()  # seems to fix bugs for some users.
 
     model.eval()
-    if torch.__version__ >= "2" and sys.platform != "win32":
-        model = torch.compile(model)
+    # if torch.__version__ >= "2" and sys.platform != "win32":
+    #     model = torch.compile(model)
 
     def evaluate(
         instruction,

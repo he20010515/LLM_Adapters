@@ -30,7 +30,28 @@
                 "--adapter_name",
                 "bottleneck",
                 "--use_global_kv_adapter",
+                "--codebook_nums",
+                "256",
+                "--num_memories",
+                "16",
             ]
+        },
+        {
+            "name": "Python: generate",
+            "type": "python",
+            "request": "launch",
+            "program": "generate.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--base_model",
+                "decapoda-research/llama-7b-hf",
+                "--lora_weights",
+                "trained_models/llama-lora/checkpoint-23400"
+            ],
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "0"
+            }
         }
     ]
 }

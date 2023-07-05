@@ -2,3 +2,4 @@ __pycache__
 .idea/*
 peft/src/peft/__pycache__
 peft/src/peft.egg-info
+trained_models

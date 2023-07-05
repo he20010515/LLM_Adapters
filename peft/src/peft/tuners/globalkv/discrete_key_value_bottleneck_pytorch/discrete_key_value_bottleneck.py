@@ -66,6 +66,9 @@ class DiscreteKeyValueBottleneck(nn.Module):
                 x.detach_()
 
         if self.random_project_embed:
+            if x.dtype != self.rand_proj.dtype:
+                x = x.half()
+                self.rand_proj = self.rand_proj.half()
             x = einsum('b n d, d e -> b n e', x, self.rand_proj)
 
         vq_out = self.vq(x)
