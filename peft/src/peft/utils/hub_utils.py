@@ -1,7 +1,3 @@
-# flake8: noqa
-# There's no way to ignore "F401 '...' imported but unused" warnings in this
-# module, but to preserve other warnings. So, don't check this module at all
-
 # coding=utf-8
 # Copyright 2023-present the HuggingFace Inc. team.
 #
@@ -17,9 +13,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .lora import LoraConfig, LoraModel
-from .bottleneck import BottleneckConfig, BottleneckModel
-from .p_tuning import PromptEncoder, PromptEncoderConfig, PromptEncoderReparameterizationType
-from .prefix_tuning import PrefixEncoder, PrefixTuningConfig
-from .prompt_tuning import PromptEmbedding, PromptTuningConfig, PromptTuningInit
-from .prototype_lora import PrototypeLoraModel, PrototypeLoraConfig
+from huggingface_hub import get_hf_file_metadata, hf_hub_url
+from huggingface_hub.utils import EntryNotFoundError
+
+
+def hub_file_exists(repo_id: str, filename: str, revision: str = None, repo_type: str = None) -> bool:
+    r"""
+    Checks if a file exists in a remote Hub repository.
+    """
+    url = hf_hub_url(repo_id=repo_id, filename=filename, repo_type=repo_type, revision=revision)
+    try:
+        get_hf_file_metadata(url)
+        return True
+    except EntryNotFoundError:
+        return False

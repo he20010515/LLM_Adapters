@@ -13,7 +13,36 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import copy
+import os
+import warnings
+
 import torch
+
+
+# Add or edit model card to have `library_name: peft`
+def add_library_to_model_card(output_dir):
+    if os.path.exists(os.path.join(output_dir, "README.md")):
+        with open(os.path.join(output_dir, "README.md"), "r") as f:
+            lines = f.readlines()
+        # check if the first line is `---`
+        if len(lines) > 0 and lines[0].startswith("---"):
+            for i, line in enumerate(lines[1:]):
+                # check if line starts with `library_name`, if yes, update it
+                if line.startswith("library_name"):
+                    lines[i + 1] = "library_name: peft\n"
+                    break
+                elif line.startswith("---"):
+                    # insert `library_name: peft` before the last `---`
+                    lines.insert(i + 1, "library_name: peft\n")
+                    break
+        else:
+            lines = ["---\n", "library_name: peft\n", "---\n"] + lines
+    else:
+        lines = ["---\n", "library_name: peft\n", "---\n"]
+    # write the lines back to README.md
+    with open(os.path.join(output_dir, "README.md"), "w") as f:
+        f.writelines(lines)
 
 
 # needed for prefix-tuning of bloom model
@@ -157,3 +186,57 @@ def fsdp_auto_wrap_policy(model):
 
 def transpose(weight, fan_in_fan_out):
     return weight.T if fan_in_fan_out else weight
+
+
+TRANSFORMERS_MODELS_TO_LORA_TARGET_MODULES_MAPPING = {
+    "t5": ["q", "v"],
+    "mt5": ["q", "v"],
+    "bart": ["q_proj", "v_proj"],
+    "gpt2": ["c_attn"],
+    "bloom": ["query_key_value"],
+    "blip-2": ["q", "v", "q_proj", "v_proj"],
+    "opt": ["q_proj", "v_proj"],
+    "gptj": ["q_proj", "v_proj"],
+    "gpt_neox": ["query_key_value"],
+    "gpt_neo": ["q_proj", "v_proj"],
+    "bert": ["query", "value"],
+    "roberta": ["query", "value"],
+    "xlm-roberta": ["query", "value"],
+    "electra": ["query", "value"],
+    "deberta-v2": ["query_proj", "value_proj"],
+    "deberta": ["in_proj"],
+    "layoutlm": ["query", "value"],
+    "llama": ["q_proj", "v_proj"],
+    "chatglm": ["query_key_value"],
+    "gpt_bigcode": ["c_attn"],
+    "mpt": ["Wqkv"],
+}
+
+COMMON_LAYERS_PATTERN = ["layers", "h", "block", "blocks"]
+
+TRANSFORMERS_MODELS_TO_ADALORA_TARGET_MODULES_MAPPING = {
+    "t5": ["q", "k", "v", "o", "wi", "wo"],
+    "mt5": ["q", "k", "v", "o", "wi_0", "wi_1", "wo"],
+    "bart": ["q_proj", "k_proj", "v_proj", "out_proj", "fc1", "fc2"],
+    # "gpt2": ["c_attn"],
+    # "bloom": ["query_key_value"],
+    "opt": ["q_proj", "k_proj", "v_proj", "out_proj", "fc1", "fc2"],
+    # "gptj": ["q_proj", "v_proj"],
+    # "gpt_neox": ["query_key_value"],
+    # "gpt_neo": ["q_proj", "v_proj"],
+    # "bert": ["query", "value"],
+    "roberta": ["query", "key", "value", "dense"],
+    # "xlm-roberta": ["query", "value"],
+    # "electra": ["query", "value"],
+    "deberta-v2": ["query_proj", "key_proj", "value_proj", "dense"],
+    # "deberta": ["in_proj"],
+    # "layoutlm": ["query", "value"],
+}
+
+TRANSFORMERS_MODELS_TO_PREFIX_TUNING_POSTPROCESS_MAPPING = {
+    "bloom": bloom_model_postprocess_past_key_value,
+}
+
+WEIGHTS_NAME = "adapter_model.bin"
+SAFETENSORS_WEIGHTS_NAME = "adapter_model.safetensors"
+CONFIG_NAME = "adapter_config.json"

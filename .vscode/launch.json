@@ -2,7 +2,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: finetune",
+            "name": "Python: finetune kv",
             "type": "python",
             "request": "launch",
             "program": "finetune.py",
@@ -14,9 +14,9 @@
                 "--data_path",
                 "'math_data.json' ",
                 "--output_dir",
-                "'./trained_models/llama-lora'",
+                "'./trained_models/llama-kv'",
                 "--batch_size",
-                "16",
+                "4",
                 "--micro_batch_size",
                 "4",
                 "--num_epochs",
@@ -37,6 +37,72 @@
             ]
         },
         {
+            "name": "Python: finetune lora",
+            "type": "python",
+            "request": "launch",
+            "program": "finetune.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--base_model",
+                "'decapoda-research/llama-7b-hf'",
+                "--data_path",
+                "'math_data.json' ",
+                "--output_dir",
+                "'./trained_models/llama-lora'",
+                "--batch_size",
+                "4",
+                "--micro_batch_size",
+                "4",
+                "--num_epochs",
+                "3",
+                "--learning_rate",
+                "3e-4",
+                "--cutoff_len",
+                "256",
+                "--val_set_size",
+                "120",
+                "--adapter_name",
+                "lora",
+            ],
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "7"
+            },
+        },
+        {
+            "name": "Python: finetune-prototypelora",
+            "type": "python",
+            "request": "launch",
+            "program": "finetune.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--base_model",
+                "'decapoda-research/llama-7b-hf'",
+                "--data_path",
+                "'math_data.json' ",
+                "--output_dir",
+                "'./trained_models/llama-prototpye'",
+                "--batch_size",
+                "4",
+                "--micro_batch_size",
+                "4",
+                "--num_epochs",
+                "3",
+                "--learning_rate",
+                "3e-4",
+                "--cutoff_len",
+                "256",
+                "--val_set_size",
+                "120",
+                "--adapter_name",
+                "prototypelora",
+            ],
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "7"
+            },
+        },
+        {
             "name": "Python: generate",
             "type": "python",
             "request": "launch",
@@ -47,7 +113,7 @@
                 "--base_model",
                 "decapoda-research/llama-7b-hf",
                 "--lora_weights",
-                "trained_models/llama-lora/checkpoint-23400"
+                "trained_models/llama-prototypelora/checkpoint-4600"
             ],
             "env": {
                 "CUDA_VISIBLE_DEVICES": "0"

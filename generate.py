@@ -42,6 +42,7 @@ def main(
         model = PeftModel.from_pretrained(
             model,
             lora_weights,
+            device_map={"": device},
             torch_dtype=torch.float32,
         )
     elif device == "mps":

@@ -16,6 +16,7 @@ import bitsandbytes as bnb
 from peft import (  # noqa: E402
     LoraConfig,
     BottleneckConfig,
+    PrototypeLoraConfig,
     get_peft_model,
     get_peft_model_state_dict,
     prepare_model_for_int8_training,
@@ -46,6 +47,7 @@ def train(
         lora_alpha: int = 16,
         lora_dropout: float = 0.05,
         lora_target_modules: List[str] = None,
+        sparsity:Optional[float] = 0.1,
         # bottleneck adapter hyperparams
         bottleneck_size: int = 256,
         non_linearity: str = "tanh",
@@ -218,6 +220,16 @@ def train(
             codebook_nums = codebook_nums,
             num_memories = num_memories,
         )
+    elif adapter_name == "prototypelora":
+        config = PrototypeLoraConfig(
+            r=lora_r,
+            lora_alpha=lora_alpha,
+            target_modules=lora_target_modules,
+            lora_dropout=lora_dropout,
+            bias="none",
+            task_type="CAUSAL_LM",
+            sparsity=sparsity,
+        ) 
     model = get_peft_model(model, config)
 
     if data_path.endswith(".json"):  # todo: support jsonl

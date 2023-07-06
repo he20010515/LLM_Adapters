@@ -32,6 +32,8 @@ from .tuners import (
     LoraModel,
     BottleneckConfig,
     BottleneckModel,
+    PrototypeLoraConfig,
+    PrototypeLoraModel,
     PrefixEncoder,
     PrefixTuningConfig,
     PromptEmbedding,
