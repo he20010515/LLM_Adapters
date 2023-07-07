@@ -17,6 +17,7 @@ from peft import (  # noqa: E402
     LoraConfig,
     BottleneckConfig,
     PrototypeLoraConfig,
+    KVLoraConfig,
     get_peft_model,
     get_peft_model_state_dict,
     prepare_model_for_int8_training,
@@ -196,17 +197,18 @@ def train(
         return tokenized_full_prompt
 
     model = prepare_model_for_int8_training(model, use_gradient_checkpointing=use_gradient_checkpointing)
-    if adapter_name == "lora":
-        config = LoraConfig(
-            r=lora_r,
-            lora_alpha=lora_alpha,
-            target_modules=lora_target_modules,
-            lora_dropout=lora_dropout,
-            bias="none",
-            task_type="CAUSAL_LM",
-        )
-    elif adapter_name == "bottleneck":
-        config = BottleneckConfig(
+    match adapter_name:
+        case "lora":
+            config = LoraConfig(
+                r=lora_r,
+                lora_alpha=lora_alpha,
+                target_modules=lora_target_modules,
+                lora_dropout=lora_dropout,
+                bias="none",
+                task_type="CAUSAL_LM",
+            )
+        case "bottlenect":
+            config = BottleneckConfig(
             bottleneck_size=bottleneck_size,
             non_linearity=non_linearity,
             adapter_dropout=adapter_dropout,
@@ -220,16 +222,33 @@ def train(
             codebook_nums = codebook_nums,
             num_memories = num_memories,
         )
-    elif adapter_name == "prototypelora":
-        config = PrototypeLoraConfig(
-            r=lora_r,
-            lora_alpha=lora_alpha,
-            target_modules=lora_target_modules,
-            lora_dropout=lora_dropout,
-            bias="none",
-            task_type="CAUSAL_LM",
-            sparsity=sparsity,
-        ) 
+        case "prototypelora":
+            config = PrototypeLoraConfig(
+                r=lora_r,
+                lora_alpha=lora_alpha,
+                target_modules=lora_target_modules,
+                lora_dropout=lora_dropout,
+                bias="none",
+                task_type="CAUSAL_LM",
+                sparsity=sparsity,
+            )
+        case "kvlora":
+            config = KVLoraConfig(
+                r = lora_r,
+                lora_alpha=lora_alpha,
+                target_modules=lora_target_modules,
+                lora_dropout=lora_dropout,
+                bias="none",
+                task_type="CAUSAL_LM",
+                codebook_nums=codebook_nums,
+                mem_nums=num_memories,
+            )
+        case _:
+            raise NotImplementedError("尚未实现")
+
+
+    
+    
     model = get_peft_model(model, config)
 
     if data_path.endswith(".json"):  # todo: support jsonl

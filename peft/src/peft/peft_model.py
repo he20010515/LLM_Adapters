@@ -28,7 +28,7 @@ from transformers import PreTrainedModel
 from transformers.modeling_outputs import SequenceClassifierOutput, TokenClassifierOutput
 from transformers.utils import PushToHubMixin
 
-from .tuners import LoraModel, BottleneckModel, PrefixEncoder, PromptEmbedding, PromptEncoder,PrototypeLoraModel
+from .tuners import LoraModel, BottleneckModel, PrefixEncoder, PromptEmbedding, PromptEncoder,PrototypeLoraModel,KVLoraModel
 from .utils import (
     TRANSFORMERS_MODELS_TO_PREFIX_TUNING_POSTPROCESS_MAPPING,
     WEIGHTS_NAME,
@@ -82,6 +82,8 @@ class PeftModel(PushToHubMixin, torch.nn.Module):
                 self.base_model = BottleneckModel(peft_config, model)
             elif self.peft_config.peft_type == PeftType.PROTOTYPE_LORA:
                 self.base_model = PrototypeLoraModel(model,config={"default":peft_config},adapter_name="default")
+            elif self.peft_config.peft_type == PeftType.KVLORA:
+                self.base_model = KVLoraModel(config=peft_config,model = model)
         if getattr(self.peft_config, "modules_to_save", None) is not None:
             self.modules_to_save = self.peft_config.modules_to_save
             _set_trainable(self)

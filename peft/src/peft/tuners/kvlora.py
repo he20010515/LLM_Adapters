@@ -26,6 +26,7 @@ import torch.nn.functional as F
 from transformers.pytorch_utils import Conv1D
 
 from ..utils import PeftConfig, PeftType, transpose
+from .globalkv import GlobalKV as KVCodebooks
 
 
 def is_bnb_available():
@@ -37,7 +38,7 @@ if is_bnb_available():
 
 
 @dataclass
-class LoraConfig(PeftConfig):
+class KVLoraConfig(PeftConfig):
     """
     This is the configuration class to store the configuration of a [`~peft.Lora`].
 
@@ -82,12 +83,13 @@ class LoraConfig(PeftConfig):
             "the final layer `classifier/score` are randomly initialized and as such need to be trainable and saved."
         },
     )
-
+    codebook_nums:int = field(default=4,metadata={"help": "The num of codebooks"})
+    mem_nums:int = field(default=4,metadata={"defaut" : "The num of mems per codebook"})
     def __post_init__(self):
-        self.peft_type = PeftType.LORA
+        self.peft_type = PeftType.KVLORA
 
 
-class LoraModel(torch.nn.Module):
+class KVLoraModel(torch.nn.Module):
     """
     Creates Low Rank Adapter (Lora) model from a pretrained transformers model.
 
@@ -162,7 +164,7 @@ class LoraModel(torch.nn.Module):
                         kwargs.update({"enable_lora": self.peft_config.enable_lora})
                         new_module = MergedLinear8bitLt(target.in_features, target.out_features, bias=bias, **kwargs)
                 elif isinstance(target, torch.nn.Linear) and self.peft_config.enable_lora is None:
-                    new_module = Linear(target.in_features, target.out_features, bias=bias, **kwargs)
+                    new_module = Linear(target.in_features, target.out_features, bias=bias,config = self.peft_config, **kwargs)
                 elif self.peft_config.enable_lora is not None:
                     kwargs.update({"enable_lora": self.peft_config.enable_lora})
                     if isinstance(target, Conv1D):
@@ -295,6 +297,7 @@ class Linear(nn.Linear, LoraLayer):
         lora_dropout: float = 0.0,
         fan_in_fan_out: bool = False,  # Set this to True if the layer to replace stores weight like (fan_in, fan_out)
         merge_weights: bool = True,
+        config:Optional[KVLoraConfig] = None,
         **kwargs,
     ):
         nn.Linear.__init__(self, in_features, out_features, **kwargs)
@@ -305,6 +308,8 @@ class Linear(nn.Linear, LoraLayer):
         if r > 0:
             self.lora_A = nn.Linear(in_features, r, bias=False)
             self.lora_B = nn.Linear(r, out_features, bias=False)
+            assert r % config.codebook_nums == 0
+            self.lora_kv = KVCodebooks(dim = r,num_memories=config.mem_nums,num_memory_codebooks=config.codebook_nums,dim_memory=r//config.codebook_nums)
             self.scaling = self.lora_alpha / self.r
             # Freezing the pre-trained weight matrix
             self.weight.requires_grad = False
@@ -356,7 +361,12 @@ class Linear(nn.Linear, LoraLayer):
         elif self.r > 0 and not self.merged:
             result = F.linear(x, transpose(self.weight, self.fan_in_fan_out), bias=self.bias)
             if self.r > 0:
-                result += self.lora_B(self.lora_A(self.lora_dropout(x.to(self.lora_A.weight.dtype)))) * self.scaling
+                # result += self.lora_B(self.lora_A(self.lora_dropout(x.to(self.lora_A.weight.dtype)))) * self.scaling
+                x = self.lora_A(self.lora_dropout(x.to(self.lora_A.weight.dtype))) # x-> [b, n, r]
+                x = self.lora_kv(x) # x-> [b,n,r]
+                x = self.lora_B(x)
+                x = self.scaling * x
+                result += x
         else:
              result = F.linear(x, transpose(self.weight, self.fan_in_fan_out), bias=self.bias)
 
