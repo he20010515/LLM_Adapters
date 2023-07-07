@@ -184,7 +184,7 @@ class PeftModel(PushToHubMixin, torch.nn.Module):
                 )
             model = dispatch_model(model, device_map=device_map)
             hook = AlignDevicesHook(io_same_device=True)
-            if model.peft_config.peft_type in [PeftType.LORA,PeftType.PROTOTYPE_LORA, PeftType.BOTTLENECK]:
+            if model.peft_config.peft_type in [PeftType.LORA,PeftType.PROTOTYPE_LORA, PeftType.BOTTLENECK, PeftType.KVLORA]:
                 add_hook_to_module(model.base_model.model, hook)
             else:
                 remove_hook_from_submodules(model.prompt_encoder)
