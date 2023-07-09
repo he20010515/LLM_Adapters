@@ -11,7 +11,13 @@ import torch
 
 from peft import PeftModel
 from tqdm import tqdm
-from transformers import GenerationConfig, LlamaForCausalLM, LlamaTokenizer, AutoModelForCausalLM, AutoTokenizer
+from transformers import (
+    GenerationConfig,
+    LlamaForCausalLM,
+    LlamaTokenizer,
+    AutoModelForCausalLM,
+    AutoTokenizer,
+)
 
 if torch.cuda.is_available():
     device = "cuda"
@@ -26,22 +32,22 @@ except:  # noqa: E722
 
 
 def main(
-        load_8bit: bool = False,
-        base_model: str = "",
-        lora_weights: str = "tloen/alpaca-lora-7b",
-        share_gradio: bool = False,
+    load_8bit: bool = False,
+    base_model: str = "",
+    lora_weights: str = "tloen/alpaca-lora-7b",
+    share_gradio: bool = False,
 ):
     args = parse_args()
 
     def evaluate(
-            instruction,
-            input=None,
-            temperature=0.1,
-            top_p=0.75,
-            top_k=40,
-            num_beams=4,
-            max_new_tokens=256,
-            **kwargs,
+        instruction,
+        input=None,
+        temperature=0.1,
+        top_p=0.75,
+        top_k=40,
+        num_beams=4,
+        max_new_tokens=256,
+        **kwargs,
     ):
         prompt = generate_prompt(instruction, input)
         inputs = tokenizer(prompt, return_tensors="pt")
@@ -82,8 +88,8 @@ def main(
         print("Response:", evaluate(instruction))
         print()
     """
-    save_file = f'experiment/{args.model}-{args.adapter}-{args.dataset}.json'
-    create_dir('experiment/')
+    save_file = f"experiment/{args.model}-{args.adapter}-{args.dataset}.json"
+    create_dir("experiment/")
 
     dataset = load_data(args)
     tokenizer, model = load_model(args)
@@ -93,12 +99,12 @@ def main(
     output_data = []
     pbar = tqdm(total=total)
     for idx, data in enumerate(dataset):
-        instruction = data.get('instruction')
+        instruction = data.get("instruction")
 
         outputs = evaluate(instruction)
-        label = data.get('answer')
+        label = data.get("answer")
         flag = False
-        if args.dataset.lower() in ['aqua']:
+        if args.dataset.lower() in ["aqua"]:
             predict = extract_answer_letter(args, outputs)
             if label == predict:
                 correct += 1
@@ -111,23 +117,25 @@ def main(
                 correct += 1
                 flag = True
         new_data = copy.deepcopy(data)
-        new_data['output_pred'] = outputs
-        new_data['pred'] = predict
-        new_data['flag'] = flag
+        new_data["output_pred"] = outputs
+        new_data["pred"] = predict
+        new_data["flag"] = flag
         output_data.append(new_data)
-        print(' ')
-        print('---------------')
+        print(" ")
+        print("---------------")
         print(outputs)
-        print('prediction:', predict)
-        print('label:', label)
-        print('---------------')
-        print(f'\rtest:{idx + 1}/{total} | accuracy {correct}  {correct / (idx + 1)}')
-        with open(save_file, 'w+') as f:
+        print("prediction:", predict)
+        print("label:", label)
+        print("---------------")
+        print(
+            f"\rtest:{idx + 1}/{total} | accuracy {correct}  {correct / (idx + 1)}"
+        )
+        with open(save_file, "w+") as f:
             json.dump(output_data, f, indent=4)
         pbar.update(1)
     pbar.close()
-    print('\n')
-    print('test finished')
+    print("\n")
+    print("test finished")
 
 
 def create_dir(dir_path):
@@ -167,24 +175,29 @@ def load_data(args) -> list:
     Returns:
 
     """
-    file_path = f'dataset/{args.dataset}/test.json'
+    file_path = f"dataset/{args.dataset}/test.json"
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"can not find dataset file : {file_path}")
-    json_data = json.load(open(file_path, 'r'))
+    json_data = json.load(open(file_path, "r"))
     return json_data
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset', choices=['AddSub', 'MultiArith', 'SingleEq', 'gsm8k', 'AQuA', 'SVAMP'],
-                        required=True)
-    parser.add_argument('--model', choices=['LLaMA-7B', 'BLOOM-7B', 'GPT-j-6B'], required=True)
+    parser.add_argument(
+        "--dataset",
+        choices=["AddSub", "MultiArith", "SingleEq", "gsm8k", "AQuA", "SVAMP"],
+        required=True,
+    )
+    parser.add_argument(
+        "--model", choices=["LLaMA-7B", "BLOOM-7B", "GPT-j-6B"], required=True
+    )
     # parser.add_argument('--adapter', choices=['LoRA', 'AdapterP', 'AdapterH', 'Parallel', 'Scaled_Parallel'],
     #                     required=True)
-    parser.add_argument('--adapter', required=True)
-    parser.add_argument('--base_model', required=True)
-    parser.add_argument('--lora_weights', required=True)
-    parser.add_argument('--load_8bit', action='store_true', default=False)
+    parser.add_argument("--adapter", required=True)
+    parser.add_argument("--base_model", required=True)
+    parser.add_argument("--lora_weights", required=True)
+    parser.add_argument("--load_8bit", action="store_true", default=False)
 
     return parser.parse_args()
 
@@ -200,13 +213,17 @@ def load_model(args) -> tuple:
     """
     base_model = args.base_model
     if not base_model:
-        raise ValueError(f'can not find base model name by the value: {args.model}')
+        raise ValueError(
+            f"can not find base model name by the value: {args.model}"
+        )
     lora_weights = args.lora_weights
     if not lora_weights:
-        raise ValueError(f'can not find lora weight, the value is: {lora_weights}')
+        raise ValueError(
+            f"can not find lora weight, the value is: {lora_weights}"
+        )
 
     load_8bit = args.load_8bit
-    if args.model == 'LLaMA-7B':
+    if args.model == "LLaMA-7B":
         tokenizer = LlamaTokenizer.from_pretrained(base_model)
     else:
         tokenizer = AutoTokenizer.from_pretrained(base_model)
@@ -217,12 +234,9 @@ def load_model(args) -> tuple:
             torch_dtype=torch.float16,
             device_map="auto",
             trust_remote_code=True,
-        ) # fix zwq
+        )  # fix zwq
         model = PeftModel.from_pretrained(
-            model,
-            lora_weights,
-            torch_dtype=torch.float16,
-            device_map={"":0}
+            model, lora_weights, torch_dtype=torch.float16, device_map={"": 0}
         )
     elif device == "mps":
         model = AutoModelForCausalLM.from_pretrained(
@@ -262,39 +276,39 @@ def load_model(args) -> tuple:
 
 
 def load_instruction(args) -> str:
-    instruction = ''
+    instruction = ""
     if not instruction:
-        raise ValueError('instruct not initialized')
+        raise ValueError("instruct not initialized")
     return instruction
 
 
 def extract_answer_number(args, sentence: str) -> float:
     dataset = args.dataset.lower()
     if dataset in ["multiarith", "addsub", "singleeq", "gsm8k", "svamp"]:
-        sentence = sentence.replace(',', '')
-        pred = [s for s in re.findall(r'-?\d+\.?\d*', sentence)]
+        sentence = sentence.replace(",", "")
+        pred = [s for s in re.findall(r"-?\d+\.?\d*", sentence)]
         if not pred:
-            return float('inf')
+            return float("inf")
         pred_answer = float(pred[-1])
     else:
-        raise NotImplementedError(' not support dataset: {}'.format(dataset))
+        raise NotImplementedError(" not support dataset: {}".format(dataset))
     if isinstance(pred_answer, str):
         try:
             pred_answer = float(pred_answer)
         except ValueError as e:
-            pred_answer = float('inf')
+            pred_answer = float("inf")
     return pred_answer
 
 
 def extract_answer_letter(args, sentence: str) -> str:
     sentence_ = sentence.strip()
-    pred_answers = re.findall(r'A|B|C|D|E', sentence_)
+    pred_answers = re.findall(r"A|B|C|D|E", sentence_)
     if pred_answers:
         if not pred_answers:
-            return ''
+            return ""
         return pred_answers[0]
     else:
-        return ''
+        return ""
 
 
 if __name__ == "__main__":

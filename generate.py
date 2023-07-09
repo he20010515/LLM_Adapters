@@ -177,7 +177,7 @@ def generate_prompt(instruction, input=None):
 {input}
 
 ### Response:
-""" # noqa: E501
+"""  # noqa: E501
     else:
         return f"""Below is an instruction that describes a task. Write a response that appropriately completes the request.  
 

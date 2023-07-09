@@ -56,7 +56,9 @@ class PeftConfigMixin(PushToHubMixin):
     Args:
         peft_type (Union[[`~peft.utils.config.PeftType`], `str`]): The type of Peft method to use.
     """
-    peft_type: Optional[PeftType] = field(default=None, metadata={"help": "The type of PEFT model."})
+    peft_type: Optional[PeftType] = field(
+        default=None, metadata={"help": "The type of PEFT model."}
+    )
 
     @property
     def __dict__(self):
@@ -77,7 +79,9 @@ class PeftConfigMixin(PushToHubMixin):
                 method.
         """
         if os.path.isfile(save_directory):
-            raise AssertionError(f"Provided path ({save_directory}) should be a directory, not a file")
+            raise AssertionError(
+                f"Provided path ({save_directory}) should be a directory, not a file"
+            )
 
         os.makedirs(save_directory, exist_ok=True)
 
@@ -99,13 +103,21 @@ class PeftConfigMixin(PushToHubMixin):
             **kwargs:
                 Additional keyword arguments passed along to the child class initialization.
         """
-        if os.path.isfile(os.path.join(pretrained_model_name_or_path, CONFIG_NAME)):
-            config_file = os.path.join(pretrained_model_name_or_path, CONFIG_NAME)
+        if os.path.isfile(
+            os.path.join(pretrained_model_name_or_path, CONFIG_NAME)
+        ):
+            config_file = os.path.join(
+                pretrained_model_name_or_path, CONFIG_NAME
+            )
         else:
             try:
-                config_file = hf_hub_download(pretrained_model_name_or_path, CONFIG_NAME)
+                config_file = hf_hub_download(
+                    pretrained_model_name_or_path, CONFIG_NAME
+                )
             except Exception:
-                raise ValueError(f"Can't find config.json at '{pretrained_model_name_or_path}'")
+                raise ValueError(
+                    f"Can't find config.json at '{pretrained_model_name_or_path}'"
+                )
 
         loaded_attributes = cls.from_json_file(config_file)
 
@@ -155,14 +167,22 @@ class PeftConfigMixin(PushToHubMixin):
         revision: Optional[str] = None,
         cache_dir: Optional[str] = None,
     ):
-        path = os.path.join(model_id, subfolder) if subfolder is not None else model_id
+        path = (
+            os.path.join(model_id, subfolder)
+            if subfolder is not None
+            else model_id
+        )
 
         if os.path.isfile(os.path.join(path, CONFIG_NAME)):
             config_file = os.path.join(path, CONFIG_NAME)
         else:
             try:
                 config_file = hf_hub_download(
-                    model_id, CONFIG_NAME, subfolder=subfolder, revision=revision, cache_dir=cache_dir
+                    model_id,
+                    CONFIG_NAME,
+                    subfolder=subfolder,
+                    revision=revision,
+                    cache_dir=cache_dir,
                 )
             except Exception:
                 raise ValueError(f"Can't find '{CONFIG_NAME}' at '{model_id}'")
@@ -182,11 +202,21 @@ class PeftConfig(PeftConfigMixin):
         inference_mode (`bool`, defaults to `False`): Whether to use the Peft model in inference mode.
     """
 
-    base_model_name_or_path: str = field(default=None, metadata={"help": "The name of the base model to use."})
-    revision: str = field(default=None, metadata={"help": "The specific model version to use."})
-    peft_type: Union[str, PeftType] = field(default=None, metadata={"help": "Peft type"})
-    task_type: Union[str, TaskType] = field(default=None, metadata={"help": "Task type"})
-    inference_mode: bool = field(default=False, metadata={"help": "Whether to use inference mode"})
+    base_model_name_or_path: str = field(
+        default=None, metadata={"help": "The name of the base model to use."}
+    )
+    revision: str = field(
+        default=None, metadata={"help": "The specific model version to use."}
+    )
+    peft_type: Union[str, PeftType] = field(
+        default=None, metadata={"help": "Peft type"}
+    )
+    task_type: Union[str, TaskType] = field(
+        default=None, metadata={"help": "Task type"}
+    )
+    inference_mode: bool = field(
+        default=False, metadata={"help": "Whether to use inference mode"}
+    )
 
 
 @dataclass
@@ -203,12 +233,21 @@ class PromptLearningConfig(PeftConfig):
         num_layers (`int`): The number of layers in the base transformer model.
     """
 
-    num_virtual_tokens: int = field(default=None, metadata={"help": "Number of virtual tokens"})
+    num_virtual_tokens: int = field(
+        default=None, metadata={"help": "Number of virtual tokens"}
+    )
     token_dim: int = field(
-        default=None, metadata={"help": "The hidden embedding dimension of the base transformer model"}
+        default=None,
+        metadata={
+            "help": "The hidden embedding dimension of the base transformer model"
+        },
     )
     num_transformer_submodules: Optional[int] = field(
         default=None, metadata={"help": "Number of transformer submodules"}
     )
-    num_attention_heads: Optional[int] = field(default=None, metadata={"help": "Number of attention heads"})
-    num_layers: Optional[int] = field(default=None, metadata={"help": "Number of transformer layers"})
+    num_attention_heads: Optional[int] = field(
+        default=None, metadata={"help": "Number of attention heads"}
+    )
+    num_layers: Optional[int] = field(
+        default=None, metadata={"help": "Number of transformer layers"}
+    )

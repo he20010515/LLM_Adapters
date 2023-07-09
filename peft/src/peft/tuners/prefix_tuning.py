@@ -87,10 +87,14 @@ class PrefixEncoder(torch.nn.Module):
             self.transform = torch.nn.Sequential(
                 torch.nn.Linear(token_dim, encoder_hidden_size),
                 torch.nn.Tanh(),
-                torch.nn.Linear(encoder_hidden_size, num_layers * 2 * token_dim),
+                torch.nn.Linear(
+                    encoder_hidden_size, num_layers * 2 * token_dim
+                ),
             )
         else:
-            self.embedding = torch.nn.Embedding(num_virtual_tokens, num_layers * 2 * token_dim)
+            self.embedding = torch.nn.Embedding(
+                num_virtual_tokens, num_layers * 2 * token_dim
+            )
 
     def forward(self, prefix: torch.Tensor):
         if self.prefix_projection:

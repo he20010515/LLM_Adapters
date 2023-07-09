@@ -16,7 +16,12 @@ import os
 import tempfile
 import unittest
 
-from peft import LoraConfig, PrefixTuningConfig, PromptEncoderConfig, PromptTuningConfig
+from peft import (
+    LoraConfig,
+    PrefixTuningConfig,
+    PromptEncoderConfig,
+    PromptTuningConfig,
+)
 
 
 class PeftConfigTestMixin:
@@ -60,8 +65,12 @@ class PeftConfigTester(unittest.TestCase, PeftConfigTestMixin):
             with tempfile.TemporaryDirectory() as tmp_dirname:
                 config.save_pretrained(tmp_dirname)
 
-                config_from_pretrained = config_class.from_pretrained(tmp_dirname)
-                self.assertEqual(config.to_dict(), config_from_pretrained.to_dict())
+                config_from_pretrained = config_class.from_pretrained(
+                    tmp_dirname
+                )
+                self.assertEqual(
+                    config.to_dict(), config_from_pretrained.to_dict()
+                )
 
     def test_from_json_file(self):
         for config_class in self.all_config_classes:
@@ -69,7 +78,9 @@ class PeftConfigTester(unittest.TestCase, PeftConfigTestMixin):
             with tempfile.TemporaryDirectory() as tmp_dirname:
                 config.save_pretrained(tmp_dirname)
 
-                config_from_json = config_class.from_json_file(os.path.join(tmp_dirname, "adapter_config.json"))
+                config_from_json = config_class.from_json_file(
+                    os.path.join(tmp_dirname, "adapter_config.json")
+                )
                 self.assertEqual(config.to_dict(), config_from_json)
 
     def test_to_dict(self):
@@ -92,5 +103,9 @@ class PeftConfigTester(unittest.TestCase, PeftConfigTestMixin):
             with tempfile.TemporaryDirectory() as tmp_dirname:
                 config.save_pretrained(tmp_dirname)
 
-                config_from_pretrained = config_class.from_pretrained(tmp_dirname)
-                self.assertEqual(config.to_dict(), config_from_pretrained.to_dict())
+                config_from_pretrained = config_class.from_pretrained(
+                    tmp_dirname
+                )
+                self.assertEqual(
+                    config.to_dict(), config_from_pretrained.to_dict()
+                )

@@ -23,53 +23,58 @@ from peft import (  # noqa: E402
     prepare_model_for_int8_training,
     set_peft_model_state_dict,
 )
-from transformers import AutoModelForCausalLM, AutoTokenizer, LlamaTokenizer, AutoModel  # noqa: F402
+from transformers import (
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    LlamaTokenizer,
+    AutoModel,
+)  # noqa: F402
 
 
 def train(
-        # model/data params
-        base_model: str = "",  # the only required argument
-        data_path: str = "yahma/alpaca-cleaned",
-        output_dir: str = "./lora-alpaca",
-        adapter_name: str = "lora",
-        load_8bit : bool = False,
-        # training hyperparams
-        batch_size: int = 128,
-        micro_batch_size: int = 4,
-        num_epochs: int = 3,
-        learning_rate: float = 3e-4,
-        cutoff_len: int = 256,
-        val_set_size: int = 2000,
-        use_gradient_checkpointing: bool = False,
-        eval_step: int = 200,
-        save_step: int = 200,
-        # lora hyperparams
-        lora_r: int = 8,
-        lora_alpha: int = 16,
-        lora_dropout: float = 0.05,
-        lora_target_modules: List[str] = None,
-        sparsity:Optional[float] = 0.1,
-        # bottleneck adapter hyperparams
-        bottleneck_size: int = 256,
-        non_linearity: str = "tanh",
-        adapter_dropout: float = 0.0,
-        use_parallel_adapter: bool = False,
-        use_global_kv_adapter: bool = False,
-        use_adapterp: bool = False,
-        target_modules: List[str] = None,
-        scaling: Union[float, str] = 1.0,
-        # KV hyperparams
-        codebook_nums:Optional[int] = 2,
-        num_memories:Optional[int] = 16,
-        # llm hyperparams
-        train_on_inputs: bool = True,  # if False, masks out inputs in loss
-        group_by_length: bool = False,  # faster, but produces an odd training loss curve
-        # wandb params
-        wandb_project: str = "",
-        wandb_run_name: str = "",
-        wandb_watch: str = "",  # options: false | gradients | all
-        wandb_log_model: str = "",  # options: false | true
-        resume_from_checkpoint: str = None,  # either training checkpoint or final adapter
+    # model/data params
+    base_model: str = "",  # the only required argument
+    data_path: str = "yahma/alpaca-cleaned",
+    output_dir: str = "./lora-alpaca",
+    adapter_name: str = "lora",
+    load_8bit: bool = False,
+    # training hyperparams
+    batch_size: int = 128,
+    micro_batch_size: int = 4,
+    num_epochs: int = 3,
+    learning_rate: float = 3e-4,
+    cutoff_len: int = 256,
+    val_set_size: int = 2000,
+    use_gradient_checkpointing: bool = False,
+    eval_step: int = 200,
+    save_step: int = 200,
+    # lora hyperparams
+    lora_r: int = 8,
+    lora_alpha: int = 16,
+    lora_dropout: float = 0.05,
+    lora_target_modules: List[str] = None,
+    sparsity: Optional[float] = 0.1,
+    # bottleneck adapter hyperparams
+    bottleneck_size: int = 256,
+    non_linearity: str = "tanh",
+    adapter_dropout: float = 0.0,
+    use_parallel_adapter: bool = False,
+    use_global_kv_adapter: bool = False,
+    use_adapterp: bool = False,
+    target_modules: List[str] = None,
+    scaling: Union[float, str] = 1.0,
+    # KV hyperparams
+    codebook_nums: Optional[int] = 2,
+    num_memories: Optional[int] = 16,
+    # llm hyperparams
+    train_on_inputs: bool = True,  # if False, masks out inputs in loss
+    group_by_length: bool = False,  # faster, but produces an odd training loss curve
+    # wandb params
+    wandb_project: str = "",
+    wandb_run_name: str = "",
+    wandb_watch: str = "",  # options: false | gradients | all
+    wandb_log_model: str = "",  # options: false | true
+    resume_from_checkpoint: str = None,  # either training checkpoint or final adapter
 ):
     print(
         f"Finetuning model with params:\n"
@@ -117,7 +122,7 @@ def train(
 
     # Check if parameter passed or if set within environ
     use_wandb = len(wandb_project) > 0 or (
-            "WANDB_PROJECT" in os.environ and len(os.environ["WANDB_PROJECT"]) > 0
+        "WANDB_PROJECT" in os.environ and len(os.environ["WANDB_PROJECT"]) > 0
     )
     # Only overwrite environ if wandb param passed
     if len(wandb_project) > 0:
@@ -148,7 +153,9 @@ def train(
         # Due to the name of transformers' LlamaTokenizer, we have to do this
         tokenizer = LlamaTokenizer.from_pretrained(base_model)
     else:
-        tokenizer = AutoTokenizer.from_pretrained(base_model, trust_remote_code=True)
+        tokenizer = AutoTokenizer.from_pretrained(
+            base_model, trust_remote_code=True
+        )
 
     tokenizer.pad_token_id = (
         0  # unk. we want this to be different from the eos token
@@ -166,9 +173,9 @@ def train(
             return_tensors=None,
         )
         if (
-                result["input_ids"][-1] != tokenizer.eos_token_id
-                and len(result["input_ids"]) < cutoff_len
-                and add_eos_token
+            result["input_ids"][-1] != tokenizer.eos_token_id
+            and len(result["input_ids"]) < cutoff_len
+            and add_eos_token
         ):
             result["input_ids"].append(tokenizer.eos_token_id)
             if "chatglm" not in base_model:
@@ -177,7 +184,10 @@ def train(
         result["labels"] = result["input_ids"].copy()
 
         if "chatglm" in base_model:
-            return {"input_ids": result["input_ids"], "labels": result["labels"]}
+            return {
+                "input_ids": result["input_ids"],
+                "labels": result["labels"],
+            }
         else:
             return result
 
@@ -190,13 +200,15 @@ def train(
             user_prompt_len = len(tokenized_user_prompt["input_ids"])
 
             tokenized_full_prompt["labels"] = [
-                                                  -100
-                                              ] * user_prompt_len + tokenized_full_prompt["labels"][
-                                                                    user_prompt_len:
-                                                                    ]  # could be sped up, probably
+                -100
+            ] * user_prompt_len + tokenized_full_prompt["labels"][
+                user_prompt_len:
+            ]  # could be sped up, probably
         return tokenized_full_prompt
 
-    model = prepare_model_for_int8_training(model, use_gradient_checkpointing=use_gradient_checkpointing)
+    model = prepare_model_for_int8_training(
+        model, use_gradient_checkpointing=use_gradient_checkpointing
+    )
     match adapter_name:
         case "lora":
             config = LoraConfig(
@@ -209,19 +221,19 @@ def train(
             )
         case "bottlenect":
             config = BottleneckConfig(
-            bottleneck_size=bottleneck_size,
-            non_linearity=non_linearity,
-            adapter_dropout=adapter_dropout,
-            use_parallel_adapter=use_parallel_adapter,
-            use_global_kv_adapter=use_global_kv_adapter,
-            use_adapterp=use_adapterp,
-            target_modules=target_modules,
-            scaling=scaling,
-            bias="none",
-            task_type="CAUSAL_LM",
-            codebook_nums = codebook_nums,
-            num_memories = num_memories,
-        )
+                bottleneck_size=bottleneck_size,
+                non_linearity=non_linearity,
+                adapter_dropout=adapter_dropout,
+                use_parallel_adapter=use_parallel_adapter,
+                use_global_kv_adapter=use_global_kv_adapter,
+                use_adapterp=use_adapterp,
+                target_modules=target_modules,
+                scaling=scaling,
+                bias="none",
+                task_type="CAUSAL_LM",
+                codebook_nums=codebook_nums,
+                num_memories=num_memories,
+            )
         case "prototypelora":
             config = PrototypeLoraConfig(
                 r=lora_r,
@@ -234,7 +246,7 @@ def train(
             )
         case "kvlora":
             config = KVLoraConfig(
-                r = lora_r,
+                r=lora_r,
                 lora_alpha=lora_alpha,
                 target_modules=lora_target_modules,
                 lora_dropout=lora_dropout,
@@ -246,9 +258,6 @@ def train(
         case _:
             raise NotImplementedError("尚未实现")
 
-
-    
-    
     model = get_peft_model(model, config)
 
     if data_path.endswith(".json"):  # todo: support jsonl
@@ -359,7 +368,7 @@ def generate_prompt(data_point):
                 {data_point["input"]}
                 
                 ### Response:
-                {data_point["output"]}""" # noqa: E501
+                {data_point["output"]}"""  # noqa: E501
     else:
         return f"""Below is an instruction that describes a task. Write a response that appropriately completes the request.  
 
@@ -367,7 +376,7 @@ def generate_prompt(data_point):
                 {data_point["instruction"]}
                 
                 ### Response:
-                {data_point["output"]}""" # noqa: E501
+                {data_point["output"]}"""  # noqa: E501
 
 
 if __name__ == "__main__":

@@ -20,7 +20,15 @@ from .peft_model import (
     PeftModelForSequenceClassification,
     PeftModelForTokenClassification,
 )
-from .tuners import LoraConfig, PrefixTuningConfig, PromptEncoderConfig, PromptTuningConfig, BottleneckConfig,PrototypeLoraConfig,KVLoraConfig
+from .tuners import (
+    LoraConfig,
+    PrefixTuningConfig,
+    PromptEncoderConfig,
+    PromptTuningConfig,
+    BottleneckConfig,
+    PrototypeLoraConfig,
+    KVLoraConfig,
+)
 from .utils import PromptLearningConfig
 
 
@@ -38,7 +46,7 @@ PEFT_TYPE_TO_CONFIG_MAPPING = {
     "LORA": LoraConfig,
     "BOTTLENECK": BottleneckConfig,
     "PROTOTYPE_LORA": PrototypeLoraConfig,
-    "KVLORA":KVLoraConfig
+    "KVLORA": KVLoraConfig,
 }
 
 TRANSFORMERS_MODELS_TO_LORA_TARGET_MODULES_MAPPING = {
@@ -90,7 +98,6 @@ TRANSFORMERS_MODELS_TO_PARALLEL_TARGET_MODULES_MAPPING = {
 }
 
 
-
 def get_peft_config(config_dict):
     """
     Returns a Peft config object from a dictionary.
@@ -135,7 +142,9 @@ def _prepare_prompt_learning_config(peft_config, model_config):
         elif "encoder_attention_heads" in model_config:
             num_attention_heads = model_config["encoder_attention_heads"]
         else:
-            raise ValueError("Please specify `num_attention_heads` in `peft_config`")
+            raise ValueError(
+                "Please specify `num_attention_heads` in `peft_config`"
+            )
         peft_config.num_attention_heads = num_attention_heads
 
     if getattr(peft_config, "encoder_hidden_size", None) is None:
@@ -146,9 +155,18 @@ def _prepare_prompt_learning_config(peft_config, model_config):
 
 def _prepare_lora_config(peft_config, model_config):
     if peft_config.target_modules is None:
-        if model_config["model_type"] not in TRANSFORMERS_MODELS_TO_LORA_TARGET_MODULES_MAPPING:
-            raise ValueError("Please specify `target_modules` in `peft_config`")
-        peft_config.target_modules = TRANSFORMERS_MODELS_TO_LORA_TARGET_MODULES_MAPPING[model_config["model_type"]]
+        if (
+            model_config["model_type"]
+            not in TRANSFORMERS_MODELS_TO_LORA_TARGET_MODULES_MAPPING
+        ):
+            raise ValueError(
+                "Please specify `target_modules` in `peft_config`"
+            )
+        peft_config.target_modules = (
+            TRANSFORMERS_MODELS_TO_LORA_TARGET_MODULES_MAPPING[
+                model_config["model_type"]
+            ]
+        )
     if len(peft_config.target_modules) == 1:
         peft_config.fan_in_fan_out = True
         peft_config.enable_lora = [True, False, True]
@@ -160,20 +178,46 @@ def _prepare_lora_config(peft_config, model_config):
 def _prepare_bottleneck_config(peft_config, model_config):
     if peft_config.target_modules is None:
         if peft_config.use_parallel_adapter:
-            if model_config["model_type"] not in TRANSFORMERS_MODELS_TO_PARALLEL_TARGET_MODULES_MAPPING:
-                raise ValueError("Please specify `target_modules` in `peft_config`")
-            peft_config.target_modules = TRANSFORMERS_MODELS_TO_PARALLEL_TARGET_MODULES_MAPPING[model_config["model_type"]]
+            if (
+                model_config["model_type"]
+                not in TRANSFORMERS_MODELS_TO_PARALLEL_TARGET_MODULES_MAPPING
+            ):
+                raise ValueError(
+                    "Please specify `target_modules` in `peft_config`"
+                )
+            peft_config.target_modules = (
+                TRANSFORMERS_MODELS_TO_PARALLEL_TARGET_MODULES_MAPPING[
+                    model_config["model_type"]
+                ]
+            )
         elif peft_config.use_adapterp:
-            if model_config["model_type"] not in TRANSFORMERS_MODELS_TO_ADAPTERP_TARGET_MODULES_MAPPING:
-                raise ValueError("Please specify `target_modules` in `peft_config`")
-            peft_config.target_modules = TRANSFORMERS_MODELS_TO_ADAPTERP_TARGET_MODULES_MAPPING[model_config["model_type"]]
+            if (
+                model_config["model_type"]
+                not in TRANSFORMERS_MODELS_TO_ADAPTERP_TARGET_MODULES_MAPPING
+            ):
+                raise ValueError(
+                    "Please specify `target_modules` in `peft_config`"
+                )
+            peft_config.target_modules = (
+                TRANSFORMERS_MODELS_TO_ADAPTERP_TARGET_MODULES_MAPPING[
+                    model_config["model_type"]
+                ]
+            )
         else:
-            if model_config["model_type"] not in TRANSFORMERS_MODELS_TO_BOTTLENECK_TARGET_MODULES_MAPPING:
-                raise ValueError("Please specify `target_modules` in `peft_config`")
-            peft_config.target_modules = TRANSFORMERS_MODELS_TO_BOTTLENECK_TARGET_MODULES_MAPPING[model_config["model_type"]]
+            if (
+                model_config["model_type"]
+                not in TRANSFORMERS_MODELS_TO_BOTTLENECK_TARGET_MODULES_MAPPING
+            ):
+                raise ValueError(
+                    "Please specify `target_modules` in `peft_config`"
+                )
+            peft_config.target_modules = (
+                TRANSFORMERS_MODELS_TO_BOTTLENECK_TARGET_MODULES_MAPPING[
+                    model_config["model_type"]
+                ]
+            )
 
     return peft_config
-    
 
 
 def get_peft_model(model, peft_config):
@@ -186,9 +230,14 @@ def get_peft_model(model, peft_config):
     """
 
     model_config = model.config.to_dict()
-    peft_config.base_model_name_or_path = model.__dict__.get("name_or_path", None)
+    peft_config.base_model_name_or_path = model.__dict__.get(
+        "name_or_path", None
+    )
     if peft_config.task_type not in MODEL_TYPE_TO_PEFT_MODEL_MAPPING.keys():
-        if peft_config.peft_type == "LORA" or peft_config.peft_type == "KVLORA":
+        if (
+            peft_config.peft_type == "LORA"
+            or peft_config.peft_type == "KVLORA"
+        ):
             peft_config = _prepare_lora_config(peft_config, model_config)
             return PeftModel(model, peft_config)
         elif peft_config.peft_type == "BOTTLENECK":
@@ -197,8 +246,15 @@ def get_peft_model(model, peft_config):
     if not isinstance(peft_config, PromptLearningConfig):
         if peft_config.peft_type == "BOTTLENECK":
             peft_config = _prepare_bottleneck_config(peft_config, model_config)
-        elif peft_config.peft_type == "LORA" or peft_config.peft_type == "KVLORA":
+        elif (
+            peft_config.peft_type == "LORA"
+            or peft_config.peft_type == "KVLORA"
+        ):
             peft_config = _prepare_lora_config(peft_config, model_config)
     else:
-        peft_config = _prepare_prompt_learning_config(peft_config, model_config)
-    return MODEL_TYPE_TO_PEFT_MODEL_MAPPING[peft_config.task_type](model, peft_config)
+        peft_config = _prepare_prompt_learning_config(
+            peft_config, model_config
+        )
+    return MODEL_TYPE_TO_PEFT_MODEL_MAPPING[peft_config.task_type](
+        model, peft_config
+    )
