@@ -160,11 +160,20 @@
             "name": "Python: evaluate",
             "type": "python",
             "request": "launch",
-            "program": "infer.py",
+            "program": "evaluate.py",
             "console": "integratedTerminal",
             "justMyCode": false,
             "args": [
-                "trained_models/llama-lora/checkpoint-2200"
+                "--base_model",
+                "decapoda-research/llama-7b-hf",
+                "--dataset",
+                "AddSub",
+                "--model",
+                "LLaMA-7B",
+                "--adapter",
+                "lora",
+                "--lora_weights",
+                "trained_models/llama-lora/"
             ],
             "env": {
                 "CUDA_VISIBLE_DEVICES": "0"

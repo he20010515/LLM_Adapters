@@ -1,11 +1,11 @@
 method=$1
 python finetune.py \
   --base_model 'decapoda-research/llama-7b-hf' \
-  --data_path 'math_data.json' \
+  --data_path 'math_10k.json' \
   --output_dir ./trained_models/llama-${method} \
-  --batch_size 4 \
-  --micro_batch_size 4 \
-  --num_epochs 6 \
+  --batch_size 16 \
+  --micro_batch_size 16 \
+  --num_epochs 3 \
   --learning_rate 3e-4 \
   --cutoff_len 256 \
   --val_set_size 120 \

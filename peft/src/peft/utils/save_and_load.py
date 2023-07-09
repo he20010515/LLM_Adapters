@@ -126,7 +126,12 @@ def set_peft_model_state_dict(model, peft_model_state_dict, adapter_name="defaul
         peft_model_state_dict = state_dict
     else:
         raise NotImplementedError
+    #
+    peft_model_state_dict = {
+        k.replace("default.",''):v for k,v in peft_model_state_dict.items()
+    }
 
+    #
     load_result = model.load_state_dict(peft_model_state_dict, strict=False)
     if isinstance(config, PromptLearningConfig):
         model.prompt_encoder[adapter_name].embedding.load_state_dict(
