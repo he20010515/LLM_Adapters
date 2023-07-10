@@ -49,6 +49,8 @@ from .tuners import (
     PromptTuningInit,
     KVLoraConfig,
     KVLoraModel,
+    KVMLoraConfig,
+    KVMLoraModel
 )
 from .utils import (
     TRANSFORMERS_MODELS_TO_PREFIX_TUNING_POSTPROCESS_MAPPING,

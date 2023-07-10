@@ -1,8 +1,8 @@
 method=$1
 python finetune.py \
-  --base_model 'decapoda-research/llama-7b-hf' \
+  --base_model 'yahma/llama-7b-hf' \
   --data_path 'math_10k.json' \
-  --output_dir ./trained_models/llama-${method} \
+  --output_dir ./trained_models/yahmallama-${method} \
   --batch_size 16 \
   --micro_batch_size 16 \
   --num_epochs 3 \

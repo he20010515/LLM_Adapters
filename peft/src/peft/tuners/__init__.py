@@ -32,3 +32,4 @@ from .prompt_tuning import (
 )
 from .prototype_lora import PrototypeLoraModel, PrototypeLoraConfig
 from .kvlora import KVLoraConfig, KVLoraModel
+from .kvmlora import KVMLoraModel, KVMLoraConfig

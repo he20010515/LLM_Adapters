@@ -12,8 +12,8 @@ def evaluate(args, gpu):
                --model LLaMA-7B \
                --adapter {adaptername} \
                --dataset {dataset} \
-               --base_model 'decapoda-research/llama-7b-hf' \
-               --lora_weights './trained_models/llama-{adaptername}'"
+               --base_model 'yahma/llama-7b-hf' \
+               --lora_weights './trained_models/yahmallama-{adaptername}'"
 
     result = subprocess.run(
         command, shell=True, text=True, capture_output=False
@@ -25,11 +25,15 @@ def evaluate(args, gpu):
 
 
 datasets = ["AQuA", "AddSub", "MultiArith", "SingleEq", "gsm8k", "SVAMP"]
-adapternames = ["lora", "kvlora", "prototypelora"]
+# adapternames = ["lora", "kvlora", "prototypelora", "kvmlora"]
+
+# datasets = ["AQuA"]
+adapternames = ["lora"]
 
 tasks = list(product(datasets, adapternames))
 
-gpus = [0, 1, 2, 3, 4, 5, 6, 7]
+# gpus = [0, 1, 2, 3, 4, 5, 6, 7]
+gpus = [3, 4, 5, 6]
 tasks_queue = queue.Queue()
 gpu_queue = queue.Queue()
 

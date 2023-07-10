@@ -249,6 +249,7 @@ def get_peft_model(model, peft_config):
         elif (
             peft_config.peft_type == "LORA"
             or peft_config.peft_type == "KVLORA"
+            or peft_config == "KVMLORA"
         ):
             peft_config = _prepare_lora_config(peft_config, model_config)
     else:

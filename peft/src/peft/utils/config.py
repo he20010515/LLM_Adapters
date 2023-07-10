@@ -36,6 +36,8 @@ class PeftType(str, enum.Enum):
     ADALORA = "ADALORA"
     ADAPTION_PROMPT = "ADAPTION_PROMPT"
     KVLORA = "KVLORA"
+    KVMLORA = "KVMLORA"
+
 
 
 class TaskType(str, enum.Enum):

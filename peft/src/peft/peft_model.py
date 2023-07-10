@@ -43,6 +43,7 @@ from .tuners import (
     PromptEncoder,
     PrototypeLoraModel,
     KVLoraModel,
+    KVMLoraModel
 )
 from .utils import (
     TRANSFORMERS_MODELS_TO_PREFIX_TUNING_POSTPROCESS_MAPPING,
@@ -103,6 +104,9 @@ class PeftModel(PushToHubMixin, torch.nn.Module):
                 )
             elif self.peft_config.peft_type == PeftType.KVLORA:
                 self.base_model = KVLoraModel(config=peft_config, model=model)
+            elif self.peft_config.peft_type == PeftType.KVMLORA:
+                self.base_model = KVMLoraModel(config=peft_config, model=model)
+
         if getattr(self.peft_config, "modules_to_save", None) is not None:
             self.modules_to_save = self.peft_config.modules_to_save
             _set_trainable(self)

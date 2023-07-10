@@ -5,5 +5,5 @@ black
 black[jupyter]
 datasets
 fire
-git+https://github.com/huggingface/transformers.git
+transformers
 gradio

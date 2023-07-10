@@ -18,6 +18,7 @@ from peft import (  # noqa: E402
     BottleneckConfig,
     PrototypeLoraConfig,
     KVLoraConfig,
+    KVMLoraConfig,
     get_peft_model,
     get_peft_model_state_dict,
     prepare_model_for_int8_training,
@@ -246,6 +247,17 @@ def train(
             )
         case "kvlora":
             config = KVLoraConfig(
+                r=lora_r,
+                lora_alpha=lora_alpha,
+                target_modules=lora_target_modules,
+                lora_dropout=lora_dropout,
+                bias="none",
+                task_type="CAUSAL_LM",
+                codebook_nums=codebook_nums,
+                mem_nums=num_memories,
+            )
+        case "kvmlora":
+            config = KVMLoraConfig(
                 r=lora_r,
                 lora_alpha=lora_alpha,
                 target_modules=lora_target_modules,

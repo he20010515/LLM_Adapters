@@ -88,7 +88,7 @@ def main(
         print("Response:", evaluate(instruction))
         print()
     """
-    save_file = f"experiment/{args.model}-{args.adapter}-{args.dataset}.json"
+    save_file = f"experiment/{args.base_model.replace('/','-')}-{args.adapter}-{args.dataset}.json"
     create_dir("experiment/")
 
     dataset = load_data(args)
