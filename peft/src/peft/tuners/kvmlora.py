@@ -105,7 +105,7 @@ class KVMLoraConfig(PeftConfig):
     )
 
     def __post_init__(self):
-        self.peft_type = PeftType.KVLORA
+        self.peft_type = PeftType.KVMLORA
 
 
 class KVMLoraModel(torch.nn.Module):
@@ -387,7 +387,7 @@ class Linear(nn.Linear, KVMLoraLayer):
                 dim=in_features,
                 num_memories=config.mem_nums,
                 num_memory_codebooks=config.codebook_nums,
-                dim_memory=r*r,
+                dim_memory=r*r//config.codebook_nums,
             )
             self.scaling = self.lora_alpha / self.r
             # Freezing the pre-trained weight matrix
@@ -458,11 +458,12 @@ class Linear(nn.Linear, KVMLoraLayer):
             )
             if self.r > 0:
                 # result += self.lora_B(self.lora_A(self.lora_dropout(x.to(self.lora_A.weight.dtype)))) * self.scaling
-                w = self.lora_kv(x).view([self.r,self.r])
+                b,n,h = x.shape
+                w = self.lora_kv(x).view([b,n,self.r,self.r])
                 x = self.lora_A(
                     self.lora_dropout(x.to(self.lora_A.weight.dtype))
                 )  # x-> [b, n, r]
-                x = F.linear(x,w)
+                x = torch.einsum("b n r, b n r r-> b n r",x,w)
                 x = self.lora_B(x)
                 x = self.scaling * x
                 result += x
