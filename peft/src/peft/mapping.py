@@ -28,6 +28,7 @@ from .tuners import (
     BottleneckConfig,
     PrototypeLoraConfig,
     KVLoraConfig,
+    KVMLoraConfig,
 )
 from .utils import PromptLearningConfig
 
@@ -47,6 +48,7 @@ PEFT_TYPE_TO_CONFIG_MAPPING = {
     "BOTTLENECK": BottleneckConfig,
     "PROTOTYPE_LORA": PrototypeLoraConfig,
     "KVLORA": KVLoraConfig,
+    "KVMLORA": KVMLoraConfig,
 }
 
 TRANSFORMERS_MODELS_TO_LORA_TARGET_MODULES_MAPPING = {

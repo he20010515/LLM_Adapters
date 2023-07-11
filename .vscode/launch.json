@@ -165,15 +165,15 @@
             "justMyCode": false,
             "args": [
                 "--base_model",
-                "decapoda-research/llama-7b-hf",
+                "yahma/llama-7b-hf",
                 "--dataset",
                 "AddSub",
                 "--model",
                 "LLaMA-7B",
                 "--adapter",
-                "lora",
+                "kvmlora",
                 "--lora_weights",
-                "trained_models/llama-lora/"
+                "trained_models/yahmallama-kvmlora/"
             ],
             "env": {
                 "CUDA_VISIBLE_DEVICES": "0"

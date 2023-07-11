@@ -964,8 +964,14 @@ class VectorQuantize(nn.Module):
             x = rearrange(x, "b d n -> b n d")
 
         # project input
-
-        x = self.project_in(x)
+        if not self.training:
+            # 此时x是float16, weight是float32
+            pre_type = x.dtype
+            x = x.float()
+            x = self.project_in(x)
+            x = x.to(pre_type)    
+        else:
+            x = self.project_in(x)
 
         # handle multi-headed separate codebooks
 

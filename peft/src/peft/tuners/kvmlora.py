@@ -132,10 +132,23 @@ class KVMLoraModel(torch.nn.Module):
         - **peft_config** ([`LoraConfig`]): The configuration of the Lora model.
     """
 
-    def __init__(self, config, model):
+    def __init__(self, config: KVMLoraConfig, model):
         super().__init__()
         self.peft_config = config
         self.model = model
+        hiddendim = model.config.hidden_size
+        self.globalmem_q = KVCodebooks(
+            dim_memory=config.r**2 // config.codebook_nums,
+            num_memories=config.mem_nums,
+            num_memory_codebooks=config.codebook_nums,
+            dim=hiddendim,
+        )
+        self.globalmem_v = KVCodebooks(
+            dim_memory=config.r**2 // config.codebook_nums,
+            num_memories=config.mem_nums,
+            num_memory_codebooks=config.codebook_nums,
+            dim=hiddendim,
+        )
         self._find_and_replace()
         mark_only_lora_as_trainable(self.model, self.peft_config.bias)
         self.forward = self.model.forward
@@ -211,6 +224,10 @@ class KVMLoraModel(torch.nn.Module):
                         target.out_features,
                         bias=bias,
                         config=self.peft_config,
+                        globalmem_pointer={
+                            "q_proj": self.globalmem_q,
+                            "v_proj": self.globalmem_v,
+                        }[target_name],
                         **kwargs,
                     )
                 elif self.peft_config.enable_lora is not None:
@@ -360,6 +377,7 @@ class Linear(nn.Linear, KVMLoraLayer):
         self,
         in_features: int,
         out_features: int,
+        globalmem_pointer: KVCodebooks,
         r: int = 0,
         lora_alpha: int = 1,
         lora_dropout: float = 0.0,
@@ -376,6 +394,7 @@ class Linear(nn.Linear, KVMLoraLayer):
             lora_dropout=lora_dropout,
             merge_weights=merge_weights,
         )
+        self.globalmem_pointer = globalmem_pointer
 
         self.fan_in_fan_out = fan_in_fan_out
         # Actual trainable parameters
@@ -383,12 +402,7 @@ class Linear(nn.Linear, KVMLoraLayer):
             self.lora_A = nn.Linear(in_features, r, bias=False)
             self.lora_B = nn.Linear(r, out_features, bias=False)
             assert r % config.codebook_nums == 0
-            self.lora_kv = KVCodebooks(
-                dim=in_features,
-                num_memories=config.mem_nums,
-                num_memory_codebooks=config.codebook_nums,
-                dim_memory=r*r//config.codebook_nums,
-            )
+            self.lora_kv = self.globalmem_pointer
             self.scaling = self.lora_alpha / self.r
             # Freezing the pre-trained weight matrix
             self.weight.requires_grad = False
@@ -458,12 +472,12 @@ class Linear(nn.Linear, KVMLoraLayer):
             )
             if self.r > 0:
                 # result += self.lora_B(self.lora_A(self.lora_dropout(x.to(self.lora_A.weight.dtype)))) * self.scaling
-                b,n,h = x.shape
-                w = self.lora_kv(x).view([b,n,self.r,self.r])
+                b, n, h = x.shape
+                w = self.lora_kv(x).view([b, n, self.r, self.r])
                 x = self.lora_A(
                     self.lora_dropout(x.to(self.lora_A.weight.dtype))
                 )  # x-> [b, n, r]
-                x = torch.einsum("b n r, b n r r-> b n r",x,w)
+                x = torch.einsum("b n r, b n r r-> b n r", x, w)
                 x = self.lora_B(x)
                 x = self.scaling * x
                 result += x

@@ -59,6 +59,7 @@ def main(
             num_beams=num_beams,
             **kwargs,
         )
+        model.eval()
         with torch.no_grad():
             generation_output = model.generate(
                 input_ids=input_ids,

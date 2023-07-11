@@ -28,12 +28,15 @@ datasets = ["AQuA", "AddSub", "MultiArith", "SingleEq", "gsm8k", "SVAMP"]
 # adapternames = ["lora", "kvlora", "prototypelora", "kvmlora"]
 
 # datasets = ["AQuA"]
-adapternames = ["lora"]
+adapternames = ["kvmlora"]
 
 tasks = list(product(datasets, adapternames))
 
-# gpus = [0, 1, 2, 3, 4, 5, 6, 7]
-gpus = [3, 4, 5, 6]
+gpus = [0, 1, 2, 3, 4, 5, 6, 7]
+# gpus = [3, 4, 5, 6]
+# gpus = [
+#     4,
+# ]
 tasks_queue = queue.Queue()
 gpu_queue = queue.Queue()
 

@@ -150,6 +150,7 @@ def set_peft_model_state_dict(
         PeftType.ADALORA,
         PeftType.PROTOTYPE_LORA,
         PeftType.KVLORA,
+        PeftType.KVMLORA,
     ):
         peft_model_state_dict = {}
         for k, v in state_dict.items():

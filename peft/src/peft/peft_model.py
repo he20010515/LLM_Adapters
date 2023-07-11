@@ -232,6 +232,7 @@ class PeftModel(PushToHubMixin, torch.nn.Module):
                 PeftType.PROTOTYPE_LORA,
                 PeftType.BOTTLENECK,
                 PeftType.KVLORA,
+                PeftType.KVMLORA
             ]:
                 add_hook_to_module(model.base_model.model, hook)
             else:
