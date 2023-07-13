@@ -176,7 +176,7 @@
                 "trained_models/yahmallama-kvmlora/"
             ],
             "env": {
-                "CUDA_VISIBLE_DEVICES": "0"
+                "CUDA_VISIBLE_DEVICES": "7"
             }
         }
     ]

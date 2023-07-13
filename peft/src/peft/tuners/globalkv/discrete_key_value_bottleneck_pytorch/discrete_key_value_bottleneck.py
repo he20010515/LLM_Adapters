@@ -73,6 +73,8 @@ class DiscreteKeyValueBottleneck(nn.Module):
         vq_out = self.vq(x)
 
         quantized, memory_indices, commit_loss = vq_out
+        if not self.training:
+            print(list(memory_indices.unique().cpu().numpy()))
 
         if memory_indices.ndim == 2:
             memory_indices = rearrange(memory_indices, "... -> ... 1")
